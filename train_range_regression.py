@@ -25,7 +25,7 @@ parser.add_argument('--batch_size', type=int, default=32, help='Batch Size durin
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
-parser.add_argument('--decay_step', type=int, default=200000, help='Decay step for lr decay [default: 200000]')
+parser.add_argument('--decay_step', type=int, default=6400000, help='Decay step for lr decay [default: 200000]')
 parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.7]')
 FLAGS = parser.parse_args()
 
@@ -222,8 +222,8 @@ def train_one_epoch(sess, ops, train_writer, train_batch_generator):
         summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
             ops['train_op'], ops['loss'], ops['pred']], feed_dict=feed_dict)
 
-        print('train pred_val: ', pred_val[0:3])
-        print('train range_gt: ', range_gt[0:3])
+        print('train pred_val: ', pred_val[0:3].squeeze())
+        print('train range_gt: ', range_gt[0:3].squeeze())
 
         train_writer.add_summary(summary, step)
         loss_sum += loss_val
@@ -232,7 +232,7 @@ def train_one_epoch(sess, ops, train_writer, train_batch_generator):
 
 def eval_one_epoch(sess, ops, test_writer, eval_batch_generator):
     """ ops: dict mapping from string to tf ops """
-    is_training = False
+    is_training = True
     loss_sum = 0
     n_batches = 2000
 
@@ -247,8 +247,8 @@ def eval_one_epoch(sess, ops, test_writer, eval_batch_generator):
         summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
             ops['loss'], ops['pred']], feed_dict=feed_dict)
 
-        print('eval pred_val: ', pred_val[0:3])
-        print('eval range_gt: ', range_gt[0:3])
+        print('eval pred_val: ', pred_val[0:3].squeeze())
+        print('eval range_gt: ', range_gt[0:3].squeeze())
 
         test_writer.add_summary(summary, step)
         loss_sum += loss_val
