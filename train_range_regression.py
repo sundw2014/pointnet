@@ -176,6 +176,7 @@ class batch_generator(object):
     def get_train_batch_generator(self):
         while True:
             frame_idxs = np.random.permutation(len(self.train_frames))
+            print("train random permutation, len(frame_idxs) = %d"%len(frame_idxs))
             for frame_idx in frame_idxs:
                 frame = self.h5[self.train_frames[frame_idx]]
                 patches = frame.keys()
@@ -191,6 +192,7 @@ class batch_generator(object):
     def get_eval_batch_generator(self):
         while True:
             frame_idxs = np.random.permutation(len(self.eval_frames))
+            print("eval random permutation, len(frame_idxs) = %d"%len(frame_idxs))
             for frame_idx in frame_idxs:
                 frame = self.h5[self.eval_frames[frame_idx]]
                 patches = frame.keys()
