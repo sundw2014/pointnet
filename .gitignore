@@ -1,0 +1,10 @@
+*.swo
+data/
+*.h5
+log/
+*.pyc
+part_seg/PartAnnotation/
+part_seg/hdf5_data/
+part_seg/test_results/
+part_seg/train_results/
+

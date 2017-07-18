@@ -98,7 +98,7 @@ def train():
             tf.summary.scalar('bn_decay', bn_decay)
 
             # Get model and loss
-            pred, end_points = MODEL.get_model(pointclouds_pl, is_training_pl, bn_decay=bn_decay)
+            pred, end_points = MODEL.get_model(pointclouds_pl, query_points, is_training_pl, bn_decay=bn_decay)
             loss = MODEL.get_loss(pred, labels_pl, end_points)
             tf.summary.scalar('loss', loss)
 
@@ -164,15 +164,14 @@ def train():
 class batch_generator(object):
     """batch_generator"""
     def __init__(self, filename):
-        super(, self).__init__()
         self.filename = filename
         self.train_count = 0
         self.eval_count = 0
         self.h5 = h5py.File(self.filename)
         self.frames = self.h5.keys()
         n_frame = len(self.frames)
-        self.train_frames = self.frames[0:floor(n_frame*0.8)]
-        self.eval_frames = self.frames[floor(n_frame*0.8):-1]
+        self.train_frames = self.frames[0:int(n_frame*0.8)]
+        self.eval_frames = self.frames[int(n_frame*0.8):-1]
 
     def get_train_batch_generator(self):
         while True:
@@ -207,16 +206,13 @@ class batch_generator(object):
 def train_one_epoch(sess, ops, train_writer, train_batch_generator):
     """ ops: dict mapping from string to tf ops """
     is_training = True
-
+    loss_sum = 0
     n_batches = 8000
-    for i in n_batches:
-        log_string('----' + str(i) + '-----')
-
-        loss_sum = 0
-
+    for i in range(n_batches):
+		#log_string('----' + str(i) + '-----')
         pl, query_points, range_gt = train_batch_generator.next()
 
-        feed_dict = {ops['pointclouds_pl']: pl,
+        feed_dict = {ops['pointclouds_pl']: np.tile(np.expand_dims(pl, axis=0), [BATCH_SIZE, 1, 1]),
             ops['query_points']: query_points,
             ops['labels_pl']: range_gt,
             ops['is_training_pl']: is_training,}
@@ -234,21 +230,18 @@ def eval_one_epoch(sess, ops, test_writer, eval_batch_generator):
     loss_sum = 0
     n_batches = 2000
 
-    for i in n_batches:
-        log_string('----' + str(i) + '-----')
-
-        loss_sum = 0
-
+    for i in range(n_batches):
+		#log_string('----' + str(i) + '-----')
         pl, query_points, range_gt = eval_batch_generator.next()
 
-        feed_dict = {ops['pointclouds_pl']: pl,
+        feed_dict = {ops['pointclouds_pl']: np.tile(np.expand_dims(pl, axis=0), [BATCH_SIZE, 1, 1]),
             ops['query_points']: query_points,
             ops['labels_pl']: range_gt,
             ops['is_training_pl']: is_training,}
         summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
             ops['loss'], ops['pred']], feed_dict=feed_dict)
 
-        train_writer.add_summary(summary, step)
+        test_writer.add_summary(summary, step)
         loss_sum += loss_val
 
     log_string('eval mean loss: %f' % (loss_sum / float(n_batches)))
