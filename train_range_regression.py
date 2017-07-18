@@ -210,6 +210,7 @@ def train_one_epoch(sess, ops, train_writer, train_batch_generator):
     is_training = True
     loss_sum = 0
     n_batches = 8000
+
     for i in range(n_batches):
 		#log_string('----' + str(i) + '-----')
         pl, query_points, range_gt = train_batch_generator.next()
@@ -220,6 +221,9 @@ def train_one_epoch(sess, ops, train_writer, train_batch_generator):
             ops['is_training_pl']: is_training,}
         summary, step, _, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
             ops['train_op'], ops['loss'], ops['pred']], feed_dict=feed_dict)
+
+        print('train pred_val: ', pred_val[0:3])
+        print('train range_gt: ', range_gt[0:3])
 
         train_writer.add_summary(summary, step)
         loss_sum += loss_val
@@ -242,6 +246,9 @@ def eval_one_epoch(sess, ops, test_writer, eval_batch_generator):
             ops['is_training_pl']: is_training,}
         summary, step, loss_val, pred_val = sess.run([ops['merged'], ops['step'],
             ops['loss'], ops['pred']], feed_dict=feed_dict)
+
+        print('eval pred_val: ', pred_val[0:3])
+        print('eval range_gt: ', range_gt[0:3])
 
         test_writer.add_summary(summary, step)
         loss_sum += loss_val
