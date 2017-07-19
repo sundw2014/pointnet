@@ -25,8 +25,8 @@ parser.add_argument('--batch_size', type=int, default=32, help='Batch Size durin
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
-parser.add_argument('--decay_step', type=int, default=6400000, help='Decay step for lr decay [default: 200000]')
-parser.add_argument('--decay_rate', type=float, default=0.7, help='Decay rate for lr decay [default: 0.7]')
+parser.add_argument('--decay_step', type=int, default=40000, help='Decay step for lr decay [default: 40000]')
+parser.add_argument('--decay_rate', type=float, default=0.1, help='Decay rate for lr decay [default: 0.1]')
 FLAGS = parser.parse_args()
 
 
@@ -64,20 +64,20 @@ def log_string(out_str):
     print(out_str)
 
 
-def get_learning_rate(batch):
+def get_learning_rate(step):
     learning_rate = tf.train.exponential_decay(
                         BASE_LEARNING_RATE,  # Base learning rate.
-                        batch * BATCH_SIZE,  # Current index into the dataset.
+                        step,
                         DECAY_STEP,          # Decay step.
                         DECAY_RATE,          # Decay rate.
                         staircase=True)
     learning_rate = tf.maximum(learning_rate, 0.00001) # CLIP THE LEARNING RATE!
     return learning_rate
 
-def get_bn_decay(batch):
+def get_bn_decay(step):
     bn_momentum = tf.train.exponential_decay(
                       BN_INIT_DECAY,
-                      batch*BATCH_SIZE,
+                      step,
                       BN_DECAY_DECAY_STEP,
                       BN_DECAY_DECAY_RATE,
                       staircase=True)
