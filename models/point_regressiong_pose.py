@@ -12,7 +12,7 @@ from transform_nets import input_transform_net, feature_transform_net
 def placeholder_inputs(batch_size, num_point):
     point_cloud_moving = tf.placeholder(tf.float32, shape=(batch_size, num_point, 3))
     point_cloud_fixed = tf.placeholder(tf.float32, shape=(batch_size, num_point, 3))
-    pose_gt = tf.placeholder(tf.float32, shape=(batch_size))
+    pose_gt = tf.placeholder(tf.float32, shape=(batch_size, 6))
     return point_cloud_moving, point_cloud_fixed, pose_gt
 
 def feature_extractor(point_cloud, feature_length, is_training, bn_decay=None):
@@ -38,7 +38,7 @@ def feature_extractor(point_cloud, feature_length, is_training, bn_decay=None):
     with tf.variable_scope('transform_net2') as sc:
         transform = feature_transform_net(net, is_training, bn_decay, K=64)
     end_points['transform'] = transform
-    net_transformed = tf.matmul(tf.squeeze(net), transform)
+    net_transformed = tf.matmul(tf.squeeze(net, [2]), transform)
     net_transformed = tf.expand_dims(net_transformed, [2])
 
     net = tf_util.conv2d(net_transformed, 64, [1,1],
@@ -68,13 +68,13 @@ def get_model(point_cloud_moving, point_cloud_fixed, is_training, bn_decay=None)
     batch_size = point_cloud_moving.get_shape()[0].value
     num_point = point_cloud_moving.get_shape()[1].value
     end_points = {}
-    feature_length = 4096
+    feature_length = 1024
     with tf.variable_scope('shared_feature_extractor') as sc:
-        feature_moving, transform = feature_extractor(point_cloud_moving, feature_length, is_training, bn_decay)
-        end_points['transform'] = transform
+        feature_moving, ep = feature_extractor(point_cloud_moving, feature_length, is_training, bn_decay)
+        end_points['transform'] = ep['transform']
         tf.get_variable_scope().reuse_variables()
         feature_fixed, transform = feature_extractor(point_cloud_fixed, feature_length, is_training, bn_decay)
-    feature_concat = tf.concat([feature_moving, feature_fixed], [1])
+    feature_concat = tf.concat([feature_moving, feature_fixed], 1)
 
     net = tf_util.fully_connected(feature_concat, 512, bn=False, is_training=is_training,
                                   scope='fc1', bn_decay=bn_decay)

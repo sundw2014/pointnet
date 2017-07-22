@@ -182,9 +182,9 @@ class batch_generator(object):
                 pose_gt = np.zeros((self.batch_size, 6))
                 for j in range(self.batch_size):
                     batch = self.h5[self.train_batches[batch_idxs[i+j]]]
-                    point_cloud_moving[i+j,:,:] = batch['point_cloud_moving']
-                    point_cloud_fixed[i+j,:,:] = batch['point_cloud_fixed']
-                    pose_gt[i+j, :] = batch['pose']
+                    point_cloud_moving[j,:,:] = batch['point_cloud_moving']
+                    point_cloud_fixed[j,:,:] = batch['point_cloud_fixed']
+                    pose_gt[j, :] = batch['pose']
                 yield point_cloud_moving, point_cloud_fixed, pose_gt
 
     def get_eval_batch_generator(self):
@@ -197,9 +197,9 @@ class batch_generator(object):
                 pose_gt = np.zeros((self.batch_size, 6))
                 for j in range(self.batch_size):
                     batch = self.h5[self.eval_batches[batch_idxs[i+j]]]
-                    point_cloud_moving[i+j,:,:] = batch['point_cloud_moving']
-                    point_cloud_fixed[i+j,:,:] = batch['point_cloud_fixed']
-                    pose_gt[i+j, :] = batch['pose']
+                    point_cloud_moving[j,:,:] = batch['point_cloud_moving']
+                    point_cloud_fixed[j,:,:] = batch['point_cloud_fixed']
+                    pose_gt[j, :] = batch['pose']
                 yield point_cloud_moving, point_cloud_fixed, pose_gt
 
 def train_one_epoch(sess, ops, train_writer, train_batch_generator):
