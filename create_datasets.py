@@ -30,11 +30,11 @@ data = pykitti.raw(basedir, date, drive, frames=range(0, 5001, 10))
 velo = data.velo
 
 frame_count = 0
-n_patch = 20 # extract 30 patches from every frame
+n_patch = 30 # extract 10 patches from every frame
 alpha_window_stride = 2.0 * np.pi / n_patch
 # alpha_window = alpha_window_stride = 2 * np.pi / n_patch # patch window size
-n_pointcloud = 1024
-n_querypoints = 64
+n_pointcloud = 2048
+n_querypoints = 128
 
 for v in velo:
     # to (alpha, theta, range)
@@ -54,11 +54,12 @@ for v in velo:
         idx = np.where(
             ((sph[:,0] < alpha_max) &
             (sph[:,0] > alpha_min) &
-            (sph[:,1] > theta_start)))
+            (sph[:,1] < theta_start)))
         # from IPython import embed; embed()
         patch = sph[idx, :]
         patch=patch.squeeze()
         idx = np.random.permutation(patch.shape[0])
+        print('downsample ratio: %f'%(float(n_pointcloud)/idx.shape[0]))
         if idx.shape[0] < (n_pointcloud + n_querypoints):
             print('idx = %d, too sparse point_cloud' % idx.shape[0])
             continue
