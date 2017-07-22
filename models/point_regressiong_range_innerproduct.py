@@ -70,7 +70,7 @@ def get_model(point_cloud, query_points, is_training, bn_decay=None):
     print(global_feat)
 
     global_feat_expand = tf.tile(global_feat, [1, num_point, 1, 1])
-    concat_feat = tf.concat(3, [point_feat, global_feat_expand])
+    concat_feat = tf.concat([point_feat, global_feat_expand], 3)
     print(concat_feat)
 
     net = tf_util.conv2d(concat_feat, 512, [1,1],
@@ -94,7 +94,7 @@ def get_model(point_cloud, query_points, is_training, bn_decay=None):
                          padding='VALID', stride=[1,1], activation_fn=None,
                          scope='conv10')
     net = tf.squeeze(net, [2]) # BxNxC
-    net = tf.reduce_sum(tf.squeeze(tf.multiply(net, point_cloud_range)), axis=[1]) # BxNx1 dot BxNx1 output Bx1
+    net = tf.reduce_mean(tf.squeeze(tf.multiply(net, point_cloud_range)), axis=[1]) # BxNx1 dot BxNx1 output Bx1
     # output Bx1
 
     return net, end_points
@@ -114,3 +114,4 @@ def get_loss(pred, label, end_points, reg_weight=0.001):
     tf.summary.scalar('mat loss', mat_diff_loss)
 
     return regression_loss + mat_diff_loss * reg_weight
+
