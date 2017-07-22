@@ -25,7 +25,7 @@ def get_model(point_cloud, query_points, is_training, bn_decay=None):
     query_points = tf.tile(tf.expand_dims(query_points, [1]), [1, num_point, 1]) # Now, query_points is with shape BxNx2
     query_points = tf.concat([query_points, tf.zeros([batch_size, num_point, 1])], 2) # Now, query_points is with shape BxNx3
     # point_cloud_ab = tf.slice(point_cloud, [0, 0, 0], [-1, -1, 2]) # alpha and beta, shape:BxNx2
-    # point_cloud_range = tf.slice(point_cloud, [0, 0, 2], [-1, -1, 1]) # range, shape:BxNx1
+    point_cloud_range = tf.slice(point_cloud, [0, 0, 2], [-1, -1, 1]) # range, shape:BxNx1
     # shift_ab = point_cloud_ab - query_points
     shifted_pl = point_cloud - query_points
     #
@@ -48,9 +48,10 @@ def get_model(point_cloud, query_points, is_training, bn_decay=None):
         transform = feature_transform_net(net, is_training, bn_decay, K=64)
     end_points['transform'] = transform
     net_transformed = tf.matmul(tf.squeeze(net), transform)
-    net_transformed = tf.expand_dims(net_transformed, [2])
+    point_feat = tf.expand_dims(net_transformed, [2])
+    print(point_feat)
 
-    net = tf_util.conv2d(net_transformed, 64, [1,1],
+    net = tf_util.conv2d(point_feat, 64, [1,1],
                          padding='VALID', stride=[1,1],
                          bn=False, is_training=is_training,
                          scope='conv3', bn_decay=bn_decay)
@@ -64,22 +65,39 @@ def get_model(point_cloud, query_points, is_training, bn_decay=None):
                          scope='conv5', bn_decay=bn_decay)
 
     # Symmetric function: max pooling
-    net = tf_util.max_pool2d(net, [num_point,1],
+    global_feat = tf_util.max_pool2d(net, [num_point,1],
                              padding='VALID', scope='maxpool')
+    print(global_feat)
 
-    net = tf.reshape(net, [batch_size, -1])
-    net = tf_util.fully_connected(net, 512, bn=False, is_training=is_training,
-                                  scope='fc1', bn_decay=bn_decay)
-    net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training,
-                          scope='dp1')
-    net = tf_util.fully_connected(net, 256, bn=False, is_training=is_training,
-                                  scope='fc2', bn_decay=bn_decay)
-    net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training,
-                          scope='dp2')
-    net = tf_util.fully_connected(net, 1, activation_fn=None, scope='fc3')
+    global_feat_expand = tf.tile(global_feat, [1, num_point, 1, 1])
+    concat_feat = tf.concat(3, [point_feat, global_feat_expand])
+    print(concat_feat)
+
+    net = tf_util.conv2d(concat_feat, 512, [1,1],
+                         padding='VALID', stride=[1,1],
+                         bn=True, is_training=is_training,
+                         scope='conv6', bn_decay=bn_decay)
+    net = tf_util.conv2d(net, 256, [1,1],
+                         padding='VALID', stride=[1,1],
+                         bn=True, is_training=is_training,
+                         scope='conv7', bn_decay=bn_decay)
+    # net = tf_util.conv2d(net, 128, [1,1],
+    #                      padding='VALID', stride=[1,1],
+    #                      bn=True, is_training=is_training,
+    #                      scope='conv8', bn_decay=bn_decay)
+    # net = tf_util.conv2d(net, 128, [1,1],
+    #                      padding='VALID', stride=[1,1],
+    #                      bn=True, is_training=is_training,
+    #                      scope='conv9', bn_decay=bn_decay)
+
+    net = tf_util.conv2d(net, 1, [1,1],
+                         padding='VALID', stride=[1,1], activation_fn=None,
+                         scope='conv10')
+    net = tf.squeeze(net, [2]) # BxNxC
+    net = tf.reduce_sum(tf.squeeze(tf.multiply(net, point_cloud_range)), axis=[1]) # BxNx1 dot BxNx1 output Bx1
+    # output Bx1
 
     return net, end_points
-
 
 def get_loss(pred, label, end_points, reg_weight=0.001):
     """ pred: Bx1,
