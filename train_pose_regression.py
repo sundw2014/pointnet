@@ -25,8 +25,8 @@ parser.add_argument('--batch_size', type=int, default=8, help='Batch Size during
 parser.add_argument('--learning_rate', type=float, default=0.001, help='Initial learning rate [default: 0.001]')
 parser.add_argument('--momentum', type=float, default=0.9, help='Initial learning rate [default: 0.9]')
 parser.add_argument('--optimizer', default='adam', help='adam or momentum [default: adam]')
-parser.add_argument('--decay_step', type=int, default=40000, help='Decay step for lr decay [default: 40000]')
-parser.add_argument('--decay_rate', type=float, default=0.1, help='Decay rate for lr decay [default: 0.1]')
+parser.add_argument('--decay_step', type=int, default=10000, help='Decay step for lr decay [default: 10000]')
+parser.add_argument('--decay_rate', type=float, default=0.1, help='Decay rate for lr decay [default: 0.5]')
 FLAGS = parser.parse_args()
 
 BATCH_SIZE = FLAGS.batch_size
@@ -176,7 +176,7 @@ class batch_generator(object):
         while True:
             batch_idxs = np.random.permutation(len(self.train_batches))
             print("train random permutation, len(batch_idxs) = %d"%len(batch_idxs))
-            for i in range(0, len(batch_idxs), self.batch_size):
+            for i in range(0, len(batch_idxs)-self.batch_size, self.batch_size):
                 point_cloud_moving = np.zeros((self.batch_size, self.num_point, 3))
                 point_cloud_fixed = np.zeros((self.batch_size, self.num_point, 3))
                 pose_gt = np.zeros((self.batch_size, 6))
@@ -191,7 +191,7 @@ class batch_generator(object):
         while True:
             batch_idxs = np.random.permutation(len(self.eval_batches))
             print("eval random permutation, len(batch_idxs) = %d"%len(batch_idxs))
-            for i in range(0, len(batch_idxs), self.batch_size):
+            for i in range(0, len(batch_idxs)-self.batch_size, self.batch_size):
                 point_cloud_moving = np.zeros((self.batch_size, self.num_point, 3))
                 point_cloud_fixed = np.zeros((self.batch_size, self.num_point, 3))
                 pose_gt = np.zeros((self.batch_size, 6))

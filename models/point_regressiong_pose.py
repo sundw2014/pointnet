@@ -68,7 +68,7 @@ def get_model(point_cloud_moving, point_cloud_fixed, is_training, bn_decay=None)
     batch_size = point_cloud_moving.get_shape()[0].value
     num_point = point_cloud_moving.get_shape()[1].value
     end_points = {}
-    feature_length = 1024
+    feature_length = 4096
     with tf.variable_scope('shared_feature_extractor') as sc:
         feature_moving, ep = feature_extractor(point_cloud_moving, feature_length, is_training, bn_decay)
         end_points['transform'] = ep['transform']
@@ -84,7 +84,7 @@ def get_model(point_cloud_moving, point_cloud_fixed, is_training, bn_decay=None)
                                   scope='fc2', bn_decay=bn_decay)
     # net = tf_util.dropout(net, keep_prob=0.7, is_training=is_training,
     #                       scope='dp2')
-    pose = tf_util.fully_connected(net, 6, activation_fn=None, scope='fc3')
+    pose = tf_util.fully_connected(net, 6, bn=False ,activation_fn=None, scope='fc3', is_training=is_training)
     return pose, end_points
 
 def get_loss(pred, label, end_points, reg_weight=0.001):
