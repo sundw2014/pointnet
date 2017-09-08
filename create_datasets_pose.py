@@ -4,6 +4,8 @@ import h5py
 import argparse
 import numpy as np
 import transformation
+import vispy.scene
+from vispy.scene import visuals
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--basedir', default='.', help='kitti basedir [default: .]')
@@ -20,7 +22,7 @@ drive = FLAGS.drive
 kitti = pykitti.raw(basedir, date, drive, frames=range(0, 5001, 10))
 
 batch_count = 0
-n_pointcloud = 120000
+n_pointcloud = 10000
 last_velo = None
 last_oxts = None
 
@@ -33,13 +35,48 @@ def write_batch(h5_batch, point_cloud_moving, point_cloud_fixed, relative_pose):
     pose[3:6] = [ax, ay, az]
     h5_batch.create_dataset('pose', data = pose)
 
-for velo, oxts in zip(kitti.velo, kitti.oxts):
-    idx = np.random.permutation(velo.shape[0])
-    if idx.shape[0] < n_pointcloud:
-        print('number of points = %d, too sparse point_cloud' % idx.shape[0])
-        continue
-    velo = velo[idx[0:n_pointcloud],0:3]
+# https://stackoverflow.com/questions/4116658/faster-numpy-cartesian-to-spherical-coordinate-conversion#answer-4116899
+def cart2sph(xyz):
+    ptsnew = np.zeros(xyz.shape)
+    xy = xyz[:,0]**2 + xyz[:,1]**2
+    ptsnew[:,0] = np.arctan2(xyz[:,1], xyz[:,0])
+    ptsnew[:,1] = np.arctan2(np.sqrt(xy), xyz[:,2]) # for elevation angle defined from Z-axis down
+    #ptsnew[:,1] = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
+    ptsnew[:,2] = np.sqrt(xy + xyz[:,2]**2)
+    return ptsnew
 
+
+canvas = vispy.scene.SceneCanvas(keys='interactive', show=True)
+view = canvas.central_widget.add_view()
+
+# create scatter object and fill in the data
+scatter = visuals.Markers()
+
+
+# add a colored 3D axis for orientation
+axis = visuals.XYZAxis(parent=view.scene)
+
+for velo_raw, oxts in zip(kitti.velo, kitti.oxts):
+    # to (alpha, theta, range)
+    sph = cart2sph(velo_raw[:,0:3])
+    # drop all the lower channels
+    theta_min = min(sph[:,1])
+    theta_max = max(sph[:,1])
+    theta_start = (theta_min + 2.0 * theta_max) / 3.0
+    range_max = 10.0
+    idx = np.where((sph[:,2] < range_max) & (sph[:,1] < theta_start))[0]
+    # from IPython import embed; embed()
+
+    idx_idx = np.random.permutation(len(idx))
+    if len(idx) < n_pointcloud:
+        print('number of points = %d, too sparse point_cloud' % len(idx))
+        continue
+    velo = velo_raw[idx[idx_idx[0:n_pointcloud]],0:3]
+    # scatter.set_data(velo, size=5)
+    # view.add(scatter)
+    # view.camera = 'turntable'  # or try 'arcball'
+
+    # vispy.app.run()
     if last_velo is None:
         last_velo = velo
         last_oxts = oxts
