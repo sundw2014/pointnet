@@ -98,7 +98,7 @@ def train():
 
             # Get model and loss
             pred, end_points = MODEL.get_model(point_cloud_moving, point_cloud_fixed, is_training_pl, bn_decay=bn_decay)
-            loss = MODEL.get_loss(pred, pose_gt, end_points)
+            loss = MODEL.get_loss(pred, pose_gt, end_points, reg_weight=0.0)
             tf.summary.scalar('loss', loss)
 
             # Get training operator
@@ -206,7 +206,7 @@ def train_one_epoch(sess, ops, train_writer, train_batch_generator):
     """ ops: dict mapping from string to tf ops """
     is_training = True
     loss_sum = 0
-    n_batches = 100
+    n_batches = 600
 
     for i in range(n_batches):
 		#log_string('----' + str(i) + '-----')
@@ -231,7 +231,7 @@ def eval_one_epoch(sess, ops, test_writer, eval_batch_generator):
     """ ops: dict mapping from string to tf ops """
     is_training = True
     loss_sum = 0
-    n_batches = 25
+    n_batches = 150
 
     for i in range(n_batches):
 		#log_string('----' + str(i) + '-----')
